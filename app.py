@@ -112,11 +112,8 @@ try:
     hourly_temps = weather_data["hourly"]["temperature_2m"]
 
     now_hour = datetime.now().hour
-    hourly_df = pd.DataFrame({
-        "시각": [t[11:16] for t in hourly_times],          # "00:00" 형식
-        "기온(°C)": hourly_temps,
-        "hour": range(len(hourly_times)),
-    })
+    hours = list(range(len(hourly_times)))
+    tick_labels = [t[11:16] for t in hourly_times]   # "00:00" 형식
 
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">🌡️ 서울 현재 날씨 (Open-Meteo)</div>', unsafe_allow_html=True)
@@ -139,8 +136,8 @@ try:
     with w_chart:
         fig_weather = go.Figure()
         fig_weather.add_trace(go.Scatter(
-            x=hourly_df["시각"],
-            y=hourly_df["기온(°C)"],
+            x=hours,
+            y=hourly_temps,
             mode="lines+markers",
             line=dict(color="#F97316", width=2.5),
             marker=dict(size=5),
@@ -148,16 +145,27 @@ try:
             fillcolor="rgba(249,115,22,0.10)",
             name="기온",
         ))
-        fig_weather.add_vline(
-            x=f"{now_hour:02d}:00",
-            line_width=2, line_dash="dash", line_color="#7C3AED",
-            annotation_text="현재", annotation_position="top",
-        )
+        # 현재 시각 강조: 별도 마커로 표시 (add_vline은 categorical에서 오류)
+        fig_weather.add_trace(go.Scatter(
+            x=[now_hour],
+            y=[hourly_temps[now_hour]],
+            mode="markers+text",
+            marker=dict(color="#7C3AED", size=12, symbol="diamond"),
+            text=[f"현재 {hourly_temps[now_hour]:.1f}°C"],
+            textposition="top center",
+            name="현재",
+        ))
         fig_weather.update_layout(
             plot_bgcolor="white", paper_bgcolor="white",
-            xaxis=dict(title="", showgrid=False, tickangle=-45),
+            xaxis=dict(
+                title="",
+                tickmode="array",
+                tickvals=list(range(0, 24, 3)),
+                ticktext=[tick_labels[i] for i in range(0, 24, 3)],
+                showgrid=False,
+            ),
             yaxis=dict(title="°C", showgrid=True, gridcolor="#F0F0F0"),
-            margin=dict(t=10, b=10, l=0, r=0),
+            margin=dict(t=30, b=10, l=0, r=0),
             height=200,
             showlegend=False,
         )
